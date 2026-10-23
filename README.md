@@ -1,3 +1,5 @@
+> **此 Fork 的登录管理后台**：新增管理员登录、配置保存、手动采集和受保护的报告浏览。原版命令保持兼容，安装与升级见 [WEB_ADMIN.md](WEB_ADMIN.md)。
+
 <div align="center" id="trendradar">
 
 <a href="https://github.com/sansan0/TrendRadar" title="TrendRadar">
