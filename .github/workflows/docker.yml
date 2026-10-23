@@ -21,12 +21,22 @@ env:
   REGISTRY: docker.io
 
 jobs:
+  # Bootstrap the fork's Web image from this already registered workflow.
+  # Relative reusable workflows are read from the selected branch.
+  build-web:
+    if: github.repository_owner != 'sansan0' && github.event_name == 'workflow_dispatch' && github.event.inputs.image == 'all'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/web-image.yml
+
   build-crawler:
     runs-on: ubuntu-latest
     # 条件：v* 标签（排除 mcp-v*）或手动触发选择 all/crawler
     if: |
+      !(github.repository_owner != 'sansan0' && github.event_name == 'workflow_dispatch' && github.event.inputs.image == 'all') && (
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !startsWith(github.ref, 'refs/tags/mcp-v')) ||
-      (github.event_name == 'workflow_dispatch' && (github.event.inputs.image == 'all' || github.event.inputs.image == 'crawler'))
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.image == 'all' || github.event.inputs.image == 'crawler')))
 
     steps:
       - name: Checkout
@@ -75,8 +85,9 @@ jobs:
     runs-on: ubuntu-latest
     # 条件：mcp-v* 标签 或手动触发选择 all/mcp
     if: |
+      !(github.repository_owner != 'sansan0' && github.event_name == 'workflow_dispatch' && github.event.inputs.image == 'all') && (
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/mcp-v')) ||
-      (github.event_name == 'workflow_dispatch' && (github.event.inputs.image == 'all' || github.event.inputs.image == 'mcp'))
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.image == 'all' || github.event.inputs.image == 'mcp')))
 
     steps:
       - name: Checkout

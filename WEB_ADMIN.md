@@ -62,6 +62,8 @@ Compose 默认只向本机发布端口。若在 HTTPS 反向代理后部署，�
 
 发布标签为 `latest` 与 `sha-完整提交哈希`；可用后者固定部署版本，通过 `TREND_RADAR_IMAGE` 覆盖 Compose 的默认镜像。首次使用 fork 的 Actions 可能需要在 GitHub 上启用工作流。
 
+若新工作流尚未出现在 Actions 列表，可使用已注册的 **Build and Push Docker Images**，选择 `codex/web-admin` 分支、`all`，手动运行。此 fork 的 `all` 会调用同一套 Web 镜像验证与发布流程，不需要 Docker Hub 凭据；上游仓库的构建行为保留。
+
 ## 当前功能
 
 - 一个管理员账号；不开放注册。所有登录设备共享配置、任务和报告，尚未提供多用户隔离、OAuth、邮箱找回。
