@@ -1,0 +1,17 @@
+services:
+  web:
+    image: ${TREND_RADAR_IMAGE:-ghcr.io/surrychen/trendradar-web:latest}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18765:18765"
+    environment:
+      TREND_RADAR_ORIGIN: ${TREND_RADAR_ORIGIN:-http://127.0.0.1:18765}
+    volumes:
+      - web-data:/data
+    stop_grace_period: 30s
+
+volumes:
+  web-data:

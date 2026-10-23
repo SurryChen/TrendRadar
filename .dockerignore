@@ -33,3 +33,14 @@ _image/
 .env.*.local
 version
 index.html
+
+# Never send local credentials, browser sessions or virtualenvs to the builder.
+.web-data/
+.venv/
+.env
+.env.*
+!.env.example
+
+# The authenticated Web image renders the upstream editor and its login page.
+!docs/index.html
+!trendradar/web/static/index.html

@@ -24,6 +24,44 @@ python3.12 -m venv .venv
 
 不要使用原版 `http.server` / GitHub Pages 等静态服务暴露这份工作目录，否则会绕过登录。
 
+## Docker 镜像
+
+登录后台使用独立镜像 `ghcr.io/surrychen/trendradar-web:latest`，与上游采集镜像分开。镜像支持 `linux/amd64` 和 `linux/arm64`，以 UID 10001 的普通用户运行。
+
+在仓库根目录执行，先初始化账号，再启动服务：
+
+```bash
+docker compose -f docker/docker-compose-web.yml pull
+docker compose -f docker/docker-compose-web.yml run --rm web init --username admin
+docker compose -f docker/docker-compose-web.yml up -d --no-build
+```
+
+初始化时交互输入密码；若数据卷已有账号，初始化会拒绝覆盖。打开 <http://127.0.0.1:18765>。首次发布的 GHCR 包如为私有，需要先登录 GHCR，或在 GitHub 包设置中将其改为公开。
+
+账号、配置、备份和报告统一保存在 Compose 的 `web-data` 命名卷（容器内 `/data`）。更新镜像或重建容器会保留这些数据；不要执行 `docker compose down -v`，它会删除数据卷。本机 Python 运行的 `.web-data/` 不会自动导入新卷。
+
+```bash
+# 更新到最新镜像
+docker compose -f docker/docker-compose-web.yml pull
+docker compose -f docker/docker-compose-web.yml up -d --no-build
+
+# 查看状态和日志 / 停止服务并保留数据
+docker compose -f docker/docker-compose-web.yml ps
+docker compose -f docker/docker-compose-web.yml logs -f web
+docker compose -f docker/docker-compose-web.yml down
+
+# 也可以从当前源码本地构建
+docker build -f docker/Dockerfile.web -t trendradar-web:local .
+```
+
+Compose 默认只向本机发布端口。若在 HTTPS 反向代理后部署，在执行 Compose 前设置 `TREND_RADAR_ORIGIN=https://radar.example.com`；镜像入口会自动启用 Secure Cookie，代理需保留此域名的 Host。反向代理若位于另一个容器，需让它加入相同网络，代理 `web:18765`。不需要新增容器内定时器；采集仍由页面手动触发。
+
+### GitHub Actions 构建
+
+`.github/workflows/web-image.yml` 在 `codex/web-admin` 的相关代码推送后自动构建，也可在 Actions 页面手动运行 **Build Web Admin Image**。先在真实 amd64 容器中验证认证、编辑器资源、非 root 用户和数据卷重启持久化，再发布双架构镜像。使用仓库内置 `GITHUB_TOKEN`，不需要 Docker Hub 密钥。
+
+发布标签为 `latest` 与 `sha-完整提交哈希`；可用后者固定部署版本，通过 `TREND_RADAR_IMAGE` 覆盖 Compose 的默认镜像。首次使用 fork 的 Actions 可能需要在 GitHub 上启用工作流。
+
 ## 当前功能
 
 - 一个管理员账号；不开放注册。所有登录设备共享配置、任务和报告，尚未提供多用户隔离、OAuth、邮箱找回。
