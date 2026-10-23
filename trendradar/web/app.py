@@ -8,7 +8,7 @@ from starlette.applications import Starlette
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import FileResponse, JSONResponse, RedirectResponse
+from starlette.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from starlette.routing import Route
 from starlette.exceptions import HTTPException
 
@@ -140,9 +140,36 @@ def create_app(data_dir, source_dir, origin="http://127.0.0.1:18765", secure_coo
     async def page(request):
         return FileResponse(STATIC / "index.html")
 
+    async def editor(request):
+        # Render upstream's editor unchanged on disk. Server-only controls live in
+        # an adapter, so the standalone editor and future upstream merges survive.
+        html = (workspace.source / "docs/index.html").read_text()
+        html = html.replace('./assets/', '/editor-assets/')
+        html = html.replace('</head>', '<link rel="stylesheet" href="/assets/editor.css"></head>')
+        html = html.replace('<body ', '<body data-server-loading="true" ')
+        bootstrap = '<script src="/assets/editor-storage.js"></script>'
+        html = html.replace('<script src="/editor-assets/i18n.js">', bootstrap + '<script src="/editor-assets/i18n.js">')
+        html = html.replace('</body>', '<script src="/assets/editor.js"></script></body>')
+        response = HTMLResponse(html)
+        # The original editor uses inline handlers, Tailwind CDN and fixed CDN
+        # dependencies. This policy applies only here; reports stay sandboxed.
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; "
+            "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; "
+            "img-src 'self' data: https://cdn-1258574687.cos.ap-shanghai.myqcloud.com; connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net; "
+            "base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+        )
+        return response
+
+    async def editor_asset(request):
+        name = request.path_params["name"]
+        if name not in ("script.js", "i18n.js", "style.css", "weixin.webp"):
+            raise HTTPException(404)
+        return FileResponse(workspace.source / "docs/assets" / name)
+
     async def asset(request):
         name = request.path_params["name"]
-        if name not in ("app.js", "style.css"):
+        if name not in ("app.js", "style.css", "editor.js", "editor.css", "editor-storage.js"):
             raise HTTPException(404)
         return FileResponse(STATIC / name)
 
@@ -153,7 +180,8 @@ def create_app(data_dir, source_dir, origin="http://127.0.0.1:18765", secure_coo
         return JSONResponse({"error": str(exception.detail)}, status_code=exception.status_code, headers=exception.headers)
 
     app = Starlette(routes=[
-        Route("/login", page), Route("/", page),
+        Route("/login", page), Route("/", editor), Route("/editor/", editor),
+        Route("/editor-assets/{name}", editor_asset),
         Route("/assets/{name}", asset),
         Route("/api/login", login, methods=["POST"]),
         Route("/api/session", session), Route("/api/logout", logout, methods=["POST"]),

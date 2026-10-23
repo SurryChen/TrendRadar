@@ -44,6 +44,24 @@ class WebAdminTests(unittest.TestCase):
         self.assertEqual(self.client.post("/api/collect", json={}).status_code, 401)
         self.assertEqual(self.client.get("/login").status_code, 200)
 
+    def test_upstream_editor_and_authenticated_assets(self):
+        for path in ('/editor-assets/script.js', '/assets/editor.js'):
+            self.assertEqual(self.client.get(path, follow_redirects=False).status_code, 303)
+        self.login()
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="yaml-editor"', response.text)
+        self.assertIn('id="config-panel"', response.text)
+        self.assertIn('/assets/editor.js', response.text)
+        self.assertNotIn('id="workspace"', response.text)
+        self.assertIn('cdn.tailwindcss.com', response.headers['content-security-policy'])
+        self.assertEqual(self.client.get('/editor/').text, response.text)
+        original = SOURCE / 'docs/assets/script.js'
+        self.assertEqual(self.client.get('/editor-assets/script.js').content, original.read_bytes())
+        self.assertEqual(self.client.get('/editor-assets/i18n.js').status_code, 200)
+        self.assertEqual(self.client.get('/editor-assets/auth.sqlite3').status_code, 404)
+        self.assertIn('const localStorage', self.client.get('/assets/editor-storage.js').text)
+
     def test_origin_csrf_cookie_and_logout(self):
         credentials = {"username": "admin", "password": PASSWORD}
         for origin in (None, "https://other.example"):

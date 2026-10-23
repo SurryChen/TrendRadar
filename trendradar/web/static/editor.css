@@ -1,0 +1,16 @@
+body[data-server-loading=true] main{visibility:hidden}
+#server-toolbar{display:flex;align-items:center;gap:9px;padding:9px 24px;background:#fff;border-bottom:1px solid #e5e7eb;flex-shrink:0;font-size:12px;flex-wrap:wrap}
+#server-toolbar button{padding:6px 12px;border:1px solid #d1d5db;border-radius:5px;background:white;color:#374151}
+#server-toolbar button:first-of-type{background:#2563eb;border-color:#2563eb;color:white}
+#server-toolbar button:disabled{opacity:.5;cursor:wait}
+#server-message{flex:1;color:#6b7280;min-width:180px}
+#server-message[data-error=true]{color:#b91c1c}
+.server-dialog{width:min(720px,92vw);max-height:85vh;overflow:auto;padding:24px;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 20px 60px #0003;color:#374151;background:#fff}
+.server-dialog::backdrop{background:#0005}
+.server-dialog h2{font-size:18px;font-weight:600;margin-bottom:16px}
+.server-dialog .server-close{float:right;border:1px solid #d1d5db;padding:4px 12px;border-radius:5px}
+.server-dialog ul{margin:12px 0}.server-dialog li{padding:10px 0;border-bottom:1px solid #eee}
+.server-dialog a{color:#2563eb}.server-dialog pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f3f4f6;padding:12px;font:12px/1.6 monospace;max-height:260px;overflow:auto}
+.server-dialog label{display:block;margin:14px 0}.server-dialog input,.server-dialog textarea{display:block;width:100%;border:1px solid #d1d5db;border-radius:5px;padding:9px;margin-top:6px}
+.server-dialog textarea{height:260px;font:13px/1.7 monospace}.server-dialog button[type=submit]{background:#2563eb;color:#fff;padding:8px 14px;border-radius:5px}
+.server-dialog [role=alert]{color:#b91c1c;margin-top:10px}
