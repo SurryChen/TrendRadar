@@ -25,6 +25,7 @@
             label.classList.add('hidden');
             time.textContent=f.read()===f.content?'已保存到服务器':'有修改 · 未保存到服务器';
             time.title=time.textContent;
+            time.dataset.dirty=String(f.read()!==f.content);
         });
     }
     // All upstream form mutations still call these hooks. Saving remains explicit.
@@ -67,6 +68,15 @@
         data.reports.forEach(r=>{const li=document.createElement('li'),a=document.createElement('a');a.textContent=r.path+' · '+new Date(r.updated_at*1000).toLocaleString();a.href='/reports/'+r.path.split('/').map(encodeURIComponent).join('/');a.target='_blank';a.rel='noopener noreferrer';li.append(a);list.append(li);});
         if(!data.reports.length)list.textContent='暂无报告，先配置来源再手动采集。';
     }
+    const originalModuleNav = renderModuleNav;
+    renderModuleNav = () => {
+        originalModuleNav();
+        document.querySelectorAll('#module-nav button').forEach(b=>{
+            const title=b.title.replace(/^[\d.]+\s*/, '');
+            b.textContent=title.replace(/^数据源\s*-\s*/, '');
+            b.setAttribute('aria-label',b.title);
+        });
+    };
     document.addEventListener('DOMContentLoaded',async()=>{
         const toolbar=document.createElement('div');toolbar.id='server-toolbar';
         const msg=document.createElement('span');msg.id='server-message';msg.textContent='正在读取服务器配置…';
@@ -82,9 +92,29 @@
             if(dirty()&&!confirm('有未保存的配置，确定退出？'))return;
             await api('/api/logout',{method:'POST',body:'{}'});ready=false;location.replace('/login');
         }));
-        document.querySelector('nav').after(toolbar);
+        const nav=document.querySelector('nav');
+        nav.classList.add('server-header');
+        nav.after(toolbar);
+        const actions=nav.firstElementChild.lastElementChild;
+        const utilities=document.createElement('div');utilities.id='server-utilities';
+        utilities.append(...actions.children);
+        const primary=document.createElement('div');primary.id='server-primary';
+        ['server-save','server-collect','server-results','server-account','server-logout'].forEach(id=>primary.append($(id)));
+        utilities.prepend($('server-interest'));
+        toolbar.append(utilities);
+        actions.append(primary);
+        // Remove promotional UI in server mode, while retaining upstream files.
+        document.querySelector('.support-sidebar-wrap')?.remove();
+        const panes=document.querySelector('main').children;
+        panes[0].classList.add('server-source-pane');
+        panes[1].classList.add('server-visual-pane');
+        const tabNames={config:'主配置',frequency:'关键词',timeline:'时间线'};
+        files.forEach(f=>{
+            const tab=$('tab-'+f.tab);tab.title=f.name;
+            const icon=tab.querySelector('i');tab.replaceChildren(icon,document.createTextNode(tabNames[f.tab]));
+        });
         $('server-save').disabled=true;$('server-collect').disabled=true;
-        const privacy=document.querySelector('[data-i18n="nav.privacy"]');privacy.removeAttribute('data-i18n');privacy.textContent='登录后编辑，配置保存到本机服务器';
+        const privacy=document.querySelector('[data-i18n="nav.privacy"]');privacy.removeAttribute('data-i18n');privacy.textContent='本机配置';privacy.parentElement.classList.add('server-location');
         const results=dialog('server-results-dialog','采集报告与日志');
         const job=document.createElement('p');job.id='server-job';const list=document.createElement('ul');list.id='server-reports';const log=document.createElement('pre');log.id='server-log';results.append(job,list,log);
         const interests=dialog('server-interest-dialog','AI 关注方向');
@@ -99,12 +129,12 @@
             try{await api('/api/password',{method:'POST',body:JSON.stringify(data)});ready=false;e.target.reset();location.replace('/login');}catch(e){error.textContent=e.message;}
         });
         try {
-            const session=await api('/api/session');csrf=session.csrf;$('server-username').textContent='当前账号：'+session.username;
+            const session=await api('/api/session');csrf=session.csrf;$('server-username').textContent='当前账号：'+session.username;$('server-account').textContent=session.username+' · 账号';
             const configs=await Promise.all(files.map(f=>api('/api/config/'+f.name)));
             configs.forEach((data,i)=>{const f=files[i];Object.assign(f,data);f.write(data.content);$(f.id).value=data.content;updateBackdrop(f.id,f.id.replace('editor','backdrop'));});
             syncYamlToUI();syncFrequencyToUI();syncTimelineToUI();
             ready=true;document.body.removeAttribute('data-server-loading');badges();
-            message('已读取服务器配置。修改后点击「保存到服务器」。');
+            message('配置已同步 · 修改后保存，下一次采集生效');
             await refresh();timer=setInterval(()=>{badges();refresh().catch(e=>message(e.message,true));},4000);
         }catch(e){message('无法载入配置：'+e.message+'。请刷新重试。',true);}
     });
