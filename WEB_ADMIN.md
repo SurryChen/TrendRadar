@@ -58,11 +58,11 @@ Compose 默认只向本机发布端口。若在 HTTPS 反向代理后部署，�
 
 ### GitHub Actions 构建
 
-`.github/workflows/web-image.yml` 在 `codex/web-admin` 的相关代码推送后自动构建，也可在 Actions 页面手动运行 **Build Web Admin Image**。先在真实 amd64 容器中验证认证、编辑器资源、非 root 用户和数据卷重启持久化，再发布双架构镜像。使用仓库内置 `GITHUB_TOKEN`，不需要 Docker Hub 密钥。
+`.github/workflows/docker.yml` 直接定义 `verify-web` 和 `publish-web` 两个作业，在 `codex/web-admin` 的相关代码推送后自动构建。也可在 Actions 页面选择 **Build and Push Docker Images**，选择 `codex/web-admin` 分支、`all`，手动运行。先在真实 amd64 容器中验证认证、编辑器资源、非 root 用户和数据卷重启持久化，再发布双架构镜像。使用仓库内置 `GITHUB_TOKEN`，不需要 Docker Hub 密钥。
 
 发布标签为 `latest` 与 `sha-完整提交哈希`；可用后者固定部署版本，通过 `TREND_RADAR_IMAGE` 覆盖 Compose 的默认镜像。首次使用 fork 的 Actions 可能需要在 GitHub 上启用工作流。
 
-若新工作流尚未出现在 Actions 列表，可使用已注册的 **Build and Push Docker Images**，选择 `codex/web-admin` 分支、`all`，手动运行。此 fork 的 `all` 会调用同一套 Web 镜像验证与发布流程，不需要 Docker Hub 凭据；上游仓库的构建行为保留。
+Web 镜像作业放在已注册的工作流中，不再调用独立的可复用工作流。此 fork 手动运行 `all` 时仅验证和发布 Web 镜像，不需要 Docker Hub 凭据；上游仓库的标签构建与手动构建行为保留。
 
 ## 当前功能
 
